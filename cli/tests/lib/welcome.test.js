@@ -14,14 +14,26 @@ vi.mock('../../src/lib/config.js', () => ({
 
 describe('showWelcomeIfNeeded', () => {
   let consoleSpy;
+  let stdoutDescriptor;
+  let stderrDescriptor;
 
   beforeEach(() => {
     consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.clearAllMocks();
+    stdoutDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+    stderrDescriptor = Object.getOwnPropertyDescriptor(process.stderr, 'isTTY');
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true });
   });
 
   afterEach(() => {
     consoleSpy.mockRestore();
+    if (stdoutDescriptor) {
+      Object.defineProperty(process.stdout, 'isTTY', stdoutDescriptor);
+    }
+    if (stderrDescriptor) {
+      Object.defineProperty(process.stderr, 'isTTY', stderrDescriptor);
+    }
   });
 
   it('shows welcome message on first run', () => {
@@ -34,6 +46,7 @@ describe('showWelcomeIfNeeded', () => {
     expect(output).toContain('Welcome to Context Hub (chub)!');
     expect(output).toContain('Terms of Service');
     expect(output).toContain('feedback: false');
+    expect(output).toContain('/tmp/test-chub/config.yaml');
   });
 
   it('creates marker file after showing message', () => {
@@ -66,5 +79,21 @@ describe('showWelcomeIfNeeded', () => {
 
     expect(() => showWelcomeIfNeeded()).not.toThrow();
     expect(consoleSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show message in JSON mode', () => {
+    showWelcomeIfNeeded({ json: true });
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(writeFileSync).not.toHaveBeenCalled();
+  });
+
+  it('does not show message when stdout is not a TTY', () => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true });
+
+    showWelcomeIfNeeded();
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(writeFileSync).not.toHaveBeenCalled();
   });
 });

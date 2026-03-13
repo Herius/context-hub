@@ -9,9 +9,13 @@ const WELCOME_MARKER = '.welcome_shown';
  * Show the first-run welcome notice if it hasn't been shown yet.
  * Creates a marker file so it only displays once.
  */
-export function showWelcomeIfNeeded() {
+export function showWelcomeIfNeeded(opts = {}) {
+  if (opts.json) return;
+  if (!process.stdout.isTTY || !process.stderr.isTTY) return;
+
   const chubDir = getChubDir();
   const markerPath = join(chubDir, WELCOME_MARKER);
+  const configPath = join(chubDir, 'config.yaml');
 
   if (existsSync(markerPath)) return;
 
@@ -23,7 +27,7 @@ the latest documentation.
 By using chub, you agree to the Terms of Service at ${chalk.underline('https://www.aichub.org/tos.html')}
 
 Chub asks agents to provide feedback on documentation, and this feedback is used to improve docs for the developer \
-community. If you wish to disable this feedback, add ${chalk.bold('"feedback: false"')} to ${chalk.bold('~/.chub/config.yaml')}. See \
+community. If you wish to disable this feedback, add ${chalk.bold('"feedback: false"')} to ${chalk.bold(configPath)}. See \
 ${chalk.underline('https://github.com/andrewyng/context-hub')} for details.
 `);
 
